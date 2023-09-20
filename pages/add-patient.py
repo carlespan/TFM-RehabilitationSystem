@@ -5,7 +5,9 @@ import certifi
 
 from dash import html, dcc, register_page, callback
 from dash.dependencies import Output, Input, State
-import json
+import pandas as pd
+
+import datetime
 
 
 
@@ -15,13 +17,11 @@ register_page(__name__,path='/add-patient')
 
 # ----------------------------------- Conectarse a la DB con pymongo ------------------------------------------
 
-with open("config.json","r") as config_file:
-    config = json.load(config_file)
-
-usernameDB = config["db_user"]
-passwordDB = config["db_password"]
-
-MONGODB_URI = "mongodb+srv://"+usernameDB+":"+passwordDB+"@cluster0.avyshq1.mongodb.net/?retryWrites=true&w=majority"
+#username = 'carlos'
+#password = '4994xIWET66oFGOu'
+username = 'medico'
+password = 'IS6uafvwyP6cBRcu'
+MONGODB_URI = "mongodb+srv://"+username+":"+password+"@cluster0.avyshq1.mongodb.net/?retryWrites=true&w=majority"
 clientAdmin = MongoClient(MONGODB_URI, tlsCAFile=certifi.where())
 db = clientAdmin["Rehabilitación"]
 
@@ -100,7 +100,7 @@ def addPatient(n_clicks,nombre,apellidos,edad,cuadro,username,password):
             "Cuadro":cuadro,
             "Username":username,
             "Password":password,
-            #"Ejercicios propuestos": []
+            "Ejercicios propuestos": []
             #"Registros": []
         }
         pacientes.insert_one(paciente)
