@@ -16,11 +16,10 @@ from dash.exceptions import PreventUpdate
 import dash_daq as daq
 
 import numpy as np
-
 import time
 import datetime
-
 from flask import request
+import json
 
 
 register_page(__name__,path='/monitoring')
@@ -48,10 +47,6 @@ rango={"Nicla1":[1], "Nicla2":[1]}
 
 lock = threading.Lock()
 lock2 = threading.Lock()
-lock3 = threading.Lock()
-
-timeStamp=0
-
 
 
 
@@ -134,9 +129,8 @@ def contadores(nicla):
                 if diffAngles0*diffAngles1 < 0 and np.cov(buffer[nicla])>0.1: #cov para no contar temblores como repeticiones
                     subidasYbajadas[nicla]+=1
                     if subidasYbajadas[nicla]%2 != 0:
-                        with lock3:
+                        with lock2:
                             repeticiones[nicla] += 1 
-                        print(nicla, repeticiones[nicla])
 
                     rango[nicla].append(maxValue[nicla][-1]-minValue[nicla][-1]) #Rango de movimiento
                     #Rango: amplitud del movimiento. minValue o maxValue son los valores del ángulo en los picos
@@ -158,8 +152,12 @@ def contadores(nicla):
 
 
 # ----------------------------------- Conectarse a la DB con pymongo ------------------------------------------
-usernameDB = 'carlos'
-passwordDB = '4994xIWET66oFGOu'
+with open("config.json","r") as config_file:
+    config = json.load(config_file)
+
+usernameDB = config["db_user"]
+passwordDB = config["db_password"]
+
 MONGODB_URI = "mongodb+srv://"+usernameDB+":"+passwordDB+"@cluster0.avyshq1.mongodb.net/"
 clientPatient = MongoClient(MONGODB_URI, tlsCAFile=certifi.where())
 
@@ -170,18 +168,7 @@ nombre = ""
 apellidos = ""
 ejercicio = ""
 limites = [0,0] # Superior, inferior
-#pacientes = db['pacientes']
-'''
-paciente = {"Nombre":nombre,
-    "Apellidos": '',
-    "Edad":'',
-    "Cuadro":'',
-    "Username":'',
-    "Password":'',
-    "Ejercicios propuestos": [],
-    "Registros": []
-}
-'''
+
 username = ""
 password = ""
 
@@ -268,7 +255,7 @@ def update_graph(n_intervals,clicks_start):
         mensaje = mensaje if clicks_start%2 != 0 else "Ángulo: 0"
         salida.extend([estilo,mensaje]) 
 
-    with lock3:
+    with lock2:
         salida.extend([repeticiones['Nicla1'],repeticiones['Nicla2']])
     
     if clicks_start%2==0 and clicks_start>0: 
@@ -295,7 +282,6 @@ def initialize(clicks_start):
 
     if clicks_start%2 != 0:
         enable=True
-        print(clicks_start)
         thread = threading.Thread(target=readAngles, args=(addressNicla1,"Nicla1",)) # readAngles, no readAngles()
         thread2 = threading.Thread(target=readAngles, args=(addressNicla2,"Nicla2",)) # readAngles, no readAngles()
         thread.start()
@@ -331,7 +317,6 @@ def initialize(clicks_start):
         Output('reps-score-2','value',allow_duplicate=True),
         Input('save-button','n_clicks'),
         State('save-selector','value'),
-        #State('name-input-paciente','value'),
         prevent_initial_call=True
 )
 def save(clicks_aceptar,save_discard):
@@ -341,7 +326,6 @@ def save(clicks_aceptar,save_discard):
     #global pacientes
 
     if save_discard == 'Guardar':
-        print("HIOLA")
         #paciente = pacientes.find_one({"Nombre":name})
         register = {
             "Nombre":nombre,
@@ -397,8 +381,10 @@ def funcion(path):
     nombre = paciente['Nombre']
     apellidos = paciente['Apellidos']
     ejercicio = exercise
-    limites = [int(db['ejercicios'].find_one({'Ejercicio':ejercicio})[limite]) for limite in ["Superior","Inferior"]]
-    
+    print(exercise)
+    filtro = {'Nombre':nombre,'Apellidos':apellidos,'Ejercicio':ejercicio}
+    limites = [int(db['ejercicios'].find_one(filtro)[limite]) for limite in ["Superior","Inferior"]]
+    print(limites)
     marks = {mark:{'label':str(mark)} for mark in range(limites[1],limites[0]+1,10)}
     estilo = {'style':{'color':'green', 'font-weight':'bold'}}
     _ = [marks[mark].update(estilo) for mark in marks if mark in [limites[0],limites[1]]]
@@ -406,7 +392,6 @@ def funcion(path):
     sup = limites[0]+10
     inf = limites[1]-10
     initial_value = limites[1]
-    print(limites,type(limites[0]))
     for nicla in anglesValue:
         anglesValue[nicla] = (-initial_value,0,0)
 

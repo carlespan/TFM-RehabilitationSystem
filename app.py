@@ -9,15 +9,23 @@ import dash_auth
 from flask import render_template
 from flask import request
 
+import json
 
 
+# ------------------------------- Conectarse a MongoDB con PyMongo -------------------------------------
 
-# ------------------------------- CONECTARSE A MONGODB -------------------------------------
-usernameDB = 'carlos'
-passwordDB = '4994xIWET66oFGOu'
+with open("config.json","r") as config_file:
+    config = json.load(config_file)
+
+usernameDB = config["db_user"]
+passwordDB = config["db_password"]
+
 MONGODB_URI = "mongodb+srv://"+usernameDB+":"+passwordDB+"@cluster0.avyshq1.mongodb.net/?retryWrites=true&w=majority"
 clientAdmin = MongoClient(MONGODB_URI, tlsCAFile=certifi.where())
 db = clientAdmin["Rehabilitación"]
+
+pacientes = db['pacientes']
+
 
 
 
@@ -26,12 +34,6 @@ db = clientAdmin["Rehabilitación"]
 external_stylesheets = ["https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css",
                         "https://codepen.io/chriddyp/pen/bWLwgP.css"]
 
-"""
-server = flask.Flask(__name__)
-@server.route('/pages')
-def page1():
-    return render_template('index.html')
-"""
 
 
 app = Dash(__name__, external_stylesheets=external_stylesheets, suppress_callback_exceptions=True,
@@ -49,19 +51,6 @@ VALID_USERNAME_PASSWORD_PAIRS.update({"carlos":"administrador"})
 
 authentication = dash_auth.BasicAuth(app, VALID_USERNAME_PASSWORD_PAIRS)
 
-
-
-
-
-# ----------------------------------- Conectarse a la DB con pymongo ------------------------------------------
-usernameDB = 'carlos'
-passwordDB = '4994xIWET66oFGOu'
-
-MONGODB_URI = "mongodb+srv://"+usernameDB+":"+passwordDB+"@cluster0.avyshq1.mongodb.net/?retryWrites=true&w=majority"
-clientAdmin = MongoClient(MONGODB_URI, tlsCAFile=certifi.where())
-db = clientAdmin["Rehabilitación"]
-
-pacientes = db['pacientes']
 
 
 

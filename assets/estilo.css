@@ -30,6 +30,7 @@ img {
     flex-direction: column;
     align-items: center;
     padding: 20px 30px;
+    width: 120px;
 }
 #slider-divs {
     display: flex;

@@ -10,10 +10,9 @@ import plotly.express as px
 import plotly.graph_objects as go
 
 import pandas as pd
-
 from funciones.funciones_auxiliares import usuario
-
 from flask import request
+import json
 
 
 
@@ -22,8 +21,12 @@ register_page(__name__,path='/')
 
 # ----------------------------------- Conectarse a la DB con pymongo ------------------------------------------
 
-usernameDB = 'carlos'
-passwordDB = '4994xIWET66oFGOu'
+with open("config.json","r") as config_file:
+    config = json.load(config_file)
+
+usernameDB = config["db_user"]
+passwordDB = config["db_password"]
+
 MONGODB_URI = "mongodb+srv://"+usernameDB+":"+passwordDB+"@cluster0.avyshq1.mongodb.net/?retryWrites=true&w=majority"
 clientAdmin = MongoClient(MONGODB_URI, tlsCAFile=certifi.where())
 db = clientAdmin["Rehabilitación"]
@@ -149,17 +152,11 @@ def ShowPatients(path):
 )
 def ShowTable(patient_selected,path):
 
-    # A LOS PACIENTES NO LES SALE TABLA POR CULPA DEL IF FULLNAME. PERO ME INTERESA TENERLO,
-    # PORQUE ASÍ DIFERENCIO AL USUARIO DEL MÉDICO QUE VARÍA LOS NOMBRES DEL USUARIO DEL PACIENTE
-    # QUE EL NOMBRE SIEMPRE ES EL MISMO. NO PREOCUPARSE, PORQUE SI PONGO FULLNAME=DAVID MUÑOZ CALVO 
-    # ME SALE LA TABLA SIN PROBLEMA
-
     global df, nombre, apellidos, tipo_usuario
     
     username = request.authorization['username']
     password = request.authorization['password']
     name, surname, tipo_usuario = usuario(username,password)
-    print(name,surname,tipo_usuario)
     
     if tipo_usuario=='Paciente':
         fullname = name+' '+surname
@@ -238,7 +235,8 @@ def ShowExerciseData(active_cell):
         row = active_cell['row']
         ejercicio = df['Ejercicio'][row]
         #registros = pacientes.find_one({"Nombre":nombre})["Registros"]
-        registros = list(db['registros'].find({'Nombre':nombre, 'Ejercicio':ejercicio}))
+        filtro = {'Nombre':nombre,'Apellidos':apellidos,'Ejercicio':ejercicio}
+        registros = list(db['registros'].find(filtro))
         if len(registros):
             df_reg = pd.DataFrame(registros)
             maximos = [str(max([int(reg['Máximo izq/dcha'].split(' / ')[i]) for reg in registros])) for i in range(2)]
@@ -278,7 +276,8 @@ def ShowExerciseData(active_cell):
                     'xaxis':{'title':'Tiempo(s)'},
                     'yaxis':{'title':'Ángulo'}
                 }
-        limites = [db['ejercicios'].find_one({'Ejercicio':ejercicio})[limite] for limite in ["Superior","Inferior"]]
+        
+        limites = [db['ejercicios'].find_one(filtro)[limite] for limite in ["Superior","Inferior"]]
         fig.add_hline(limites[0])
         fig.add_hline(limites[1])
         fig.data=[]
